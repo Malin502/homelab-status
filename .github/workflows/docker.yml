@@ -1,4 +1,4 @@
-name: Build and Push Docker Image
+name: Build and Deploy
 
 on:
   push:
@@ -10,13 +10,23 @@ permissions:
   contents: read
   packages: write
 
+concurrency:
+  group: homelab-status-deploy
+  cancel-in-progress: false
+
 jobs:
-  build:
+  build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout application
         uses: actions/checkout@v4
+
+      - name: Set image tag
+        id: image
+        shell: bash
+        run: |
+          echo "tag=sha-${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -34,4 +44,68 @@ jobs:
           context: .
           push: true
           platforms: linux/arm64
-          tags: ghcr.io/malin502/homelab-status:latest
+          tags: |
+            ghcr.io/malin502/homelab-status:${{ steps.image.outputs.tag }}
+            ghcr.io/malin502/homelab-status:latest
+
+      - name: Checkout platform repository
+        uses: actions/checkout@v4
+        with:
+          repository: Malin502/k8s-homelab-platform
+          token: ${{ secrets.PLATFORM_REPO_TOKEN }}
+          path: platform
+
+      - name: Update deployment image
+        shell: bash
+        env:
+          IMAGE_TAG: ${{ steps.image.outputs.tag }}
+        run: |
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+
+          path = Path("platform/applications/homelab-status/deployment.yaml")
+          text = path.read_text(encoding="utf-8")
+
+          lines = text.splitlines(keepends=True)
+          matches = [
+              i for i, line in enumerate(lines)
+              if line.lstrip().startswith(
+                  "image: ghcr.io/malin502/homelab-status:"
+              )
+          ]
+
+          if len(matches) != 1:
+              raise SystemExit(
+                  f"Expected exactly one homelab-status image, found {len(matches)}"
+              )
+
+          image = (
+              "ghcr.io/malin502/homelab-status:"
+              + os.environ["IMAGE_TAG"]
+          )
+
+          i = matches[0]
+          indent = lines[i][:len(lines[i]) - len(lines[i].lstrip())]
+          lines[i] = f"{indent}image: {image}\n"
+
+          path.write_text("".join(lines), encoding="utf-8")
+          PY
+
+      - name: Commit and push deployment update
+        shell: bash
+        run: |
+          cd platform
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add applications/homelab-status/deployment.yaml
+
+          if git diff --cached --quiet; then
+            echo "No deployment changes"
+            exit 0
+          fi
+
+          git commit -m "deploy: update homelab-status to ${{ steps.image.outputs.tag }}"
+          git push
