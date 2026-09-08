@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Homelab Status</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      max-width: 800px;
+      margin: 40px auto;
+      padding: 0 20px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th, td {
+      padding: 12px;
+      border-bottom: 1px solid #ddd;
+      text-align: left;
+    }
+    .ready { color: green; }
+    .not-ready { color: red; }
+  </style>
+</head>
+<body>
+  <h1>Homelab Status</h1>
+  <h2>Nodes</h2>
+
+  <button id="refresh">更新</button>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Node</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody id="nodes">
+      <tr><td colspan="2">読み込み中...</td></tr>
+    </tbody>
+  </table>
+
+  <script src="/app.js"></script>
+</body>
+</html>
