@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/Malin502/homelab-status/internal/kubernetes"
+	"github.com/Malin502/homelab-status/internal/handler"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -52,6 +53,9 @@ func main() {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(response)
 	})
+
+	// Pod一覧APIを追加
+	http.HandleFunc("/api/pods", handler.Pods(client))
 
 	http.Handle("/", http.FileServer(http.Dir("./web")))
 
