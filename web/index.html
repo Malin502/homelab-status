@@ -4,6 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Homelab Status</title>
+  <div class="refresh-status">
+    <span id="refresh-state">● Auto Refresh: 10s</span>
+    <span id="last-updated">最終更新: --:--:--</span>
+  </div>
   <style>
     body {
       font-family: sans-serif;
@@ -22,6 +26,20 @@
     }
     .ready { color: green; }
     .not-ready { color: red; }
+
+    .refresh-status {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 24px;
+      font-size: 14px;
+      color: #666;
+    }
+
+    .refresh-status .error {
+      color: red;
+    }
   </style>
 </head>
 <body>
